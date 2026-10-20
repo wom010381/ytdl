@@ -129,7 +129,7 @@ export default function App() {
     return `${reduced} MB`;
   };
 
-  const handleDownload = (format: { quality: string; format: string; size: string; type: string }) => {
+  const handleDownload = async (format: { quality: string; format: string; size: string; type: string }) => {
     if (!videoInfo) return;
 
     const downloadItem: DownloadItem = {
@@ -146,23 +146,60 @@ export default function App() {
 
     setDownloads(prev => [downloadItem, ...prev]);
 
-    // Simulate download progress
-    simulateDownload(downloadItem.id);
-
     // If it's a direct video URL, attempt actual download
     if (videoInfo.isDirectVideo) {
-      attemptDirectDownload(videoInfo.url, videoInfo.title, format);
+      try {
+        await attemptDirectDownload(videoInfo.url, videoInfo.title, format);
+        // Mark as completed
+        setDownloads(prev =>
+          prev.map(d =>
+            d.id === downloadItem.id ? { ...d, progress: 100, status: 'completed' } : d
+          )
+        );
+      } catch {
+        setDownloads(prev =>
+          prev.map(d =>
+            d.id === downloadItem.id ? { ...d, status: 'failed' } : d
+          )
+        );
+      }
+    } else {
+      // For platform links, open the URL in a new tab
+      // The user can use browser extensions or tools to save the video
+      window.open(videoInfo.url, '_blank');
+      simulateDownload(downloadItem.id);
     }
   };
 
-  const attemptDirectDownload = (url: string, title: string, format: { format: string }) => {
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = `${title}.${format.format.toLowerCase()}`;
-    link.target = '_blank';
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+  const attemptDirectDownload = async (url: string, title: string, format: { format: string }) => {
+    const fileName = `${title.replace(/[^a-zA-Z0-9]/g, '_')}.${format.format.toLowerCase()}`;
+    
+    try {
+      // Use fetch + blob approach for cross-origin downloads
+      const response = await fetch(url);
+      
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}`);
+      }
+      
+      const blob = await response.blob();
+      const blobUrl = URL.createObjectURL(blob);
+      
+      const link = document.createElement('a');
+      link.href = blobUrl;
+      link.download = fileName;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      
+      // Clean up the blob URL after a short delay
+      setTimeout(() => URL.revokeObjectURL(blobUrl), 5000);
+    } catch (error) {
+      // If fetch fails (CORS or other error), open video directly in new tab
+      // User can then right-click > "Save video as..." to download
+      console.warn('Direct download blocked (likely CORS). Opening video in new tab.');
+      window.open(url, '_blank');
+    }
   };
 
   const simulateDownload = (id: string) => {

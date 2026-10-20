@@ -78,16 +78,30 @@ export default function VideoPreview({ videoInfo, onDownload }: VideoPreviewProp
         </div>
 
         {/* Info Notice */}
-        {videoInfo.isDirectVideo && (
-          <div className="px-6 pb-6">
-            <div className="p-3 bg-green-500/10 border border-green-500/30 rounded-xl flex items-center gap-3">
-              <i className="fas fa-check-circle text-green-400"></i>
-              <p className="text-sm text-green-300">
-                Direct video link detected! Your download will start immediately.
-              </p>
+        <div className="px-6 pb-6">
+          {videoInfo.isDirectVideo ? (
+            <div className="p-3 bg-green-500/10 border border-green-500/30 rounded-xl flex items-start gap-3">
+              <i className="fas fa-check-circle text-green-400 mt-0.5"></i>
+              <div className="text-sm text-green-300">
+                <p className="font-medium mb-1">Direct video link detected!</p>
+                <p className="text-green-300/80">
+                  The file will download to your browser's <strong>Downloads folder</strong>. 
+                  If the download doesn't start automatically, the video will open in a new tab — right-click and select <strong>"Save video as..."</strong> to save it.
+                </p>
+              </div>
             </div>
-          </div>
-        )}
+          ) : (
+            <div className="p-3 bg-yellow-500/10 border border-yellow-500/30 rounded-xl flex items-start gap-3">
+              <i className="fas fa-info-circle text-yellow-400 mt-0.5"></i>
+              <div className="text-sm text-yellow-300">
+                <p className="font-medium mb-1">Platform Video ({videoInfo.platform})</p>
+                <p className="text-yellow-300/80">
+                  Videos from {videoInfo.platform} require server-side processing. The video link has been opened in a new tab where you can use browser extensions or dedicated tools to save it.
+                </p>
+              </div>
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );
